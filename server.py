@@ -1,6 +1,6 @@
 from flask import Flask
 import threading
-import app  # این همون فایل بات تلگرام تو هست
+import test2  # این همون فایل بات تلگرام تو هست
 
 app_web = Flask(__name__)
 
@@ -10,7 +10,7 @@ def home():
 
 # اجرای ربات تلگرام در یک Thread جدا
 def run_bot():
-    import app  # همین فایل بات تلگرام تو
+    import test2  # همین فایل بات تلگرام تو
     # app.py خودش polling داره، اجرا میشه
 
 threading.Thread(target=run_bot).start()
