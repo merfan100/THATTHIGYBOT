@@ -148,11 +148,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    city_data = {
-        "esfahan": "session_esfahan",
-        "tehran": "session_tehran",
-        "shiraz": "session_shiraz",
-    }
 
     # انتخاب شهر
     if query.data == "event_kindergarten":
@@ -255,7 +250,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         caption = msg.caption or ""
         today_shamsi = jdatetime.date.today().strftime("%Y/%m/%d")
         new_caption = f"{caption}\n\n✅ تایید شده در تاریخ {today_shamsi}"
-        # استفاده از edit_message_caption چون پیام اصلی عکس است
         await query.edit_message_caption(caption=new_caption, reply_markup=None)
 
     elif query.data.startswith("reject_info_") or query.data.startswith("reject_amount_"):
