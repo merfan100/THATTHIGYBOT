@@ -10,7 +10,6 @@ from telegram.ext import (
     filters,
     ContextTypes,
 )
-# import nest_asyncio 👈 حذف شد
 
 # ------------------------- تنظیمات ثابت -------------------------
 
@@ -112,7 +111,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("ورود به کانال", url=f"https://t.me/{CHANNEL_USERNAME}")],
     ]
 
-    if update.effective_user.id == ADMIN_CHAT_ID:
+    # --- تنظیمات ادمین ---
+    # این چک برای جلوگیری از خطا در صورت ارسال دستور /start توسط ربات ادمین لازم است
+    if update.effective_user and update.effective_user.id == ADMIN_CHAT_ID:
         keyboard.append(
             [
                 InlineKeyboardButton("🔒 بستن اصفهان", callback_data="close_esfahan"),
@@ -330,28 +331,30 @@ async def main():
     # ⭐️ بررسی حیاتی برای وجود توکن ⭐️
     if not BOT_TOKEN:
         print("❌ BOT_TOKEN محیطی ست نشده. لطفا آن را در تنظیمات سرویس‌دهنده ست کنید.")
-        return None # برگرداندن None برای جلوگیری از کرش در server.py
+        return None 
 
     # ۱. ساخت و تنظیم هندلرها 
     app = ApplicationBuilder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(button_handler))
     app.add_handler(MessageHandler(filters.PHOTO, photo_handler))
-    
+
     await app.initialize()
     await set_bot_commands(app)
-    
+
     # ۲. تنظیم Webhook و شروع بات 
     WEBHOOK_URL = os.environ.get("WEBHOOK_URL")
-    
+
     if not WEBHOOK_URL:
         # اگر آدرس وب‌هوک ست نشد، این حالت برای production مناسب نیست و هشدار می‌دهیم
         print("❌ WEBHOOK_URL تنظیم نشده است. بات در حالت Webhook کار نخواهد کرد.")
     else:
         # آدرس دهی Webhook به مسیر /telegram
-        await app.bot.set_webhook(url=f"{WEBHOOK_URL}/telegram")
-        await app.start()
-        print("✅ ربات در حالت Webhook با موفقیت راه‌اندازی شد.")
-    
+        webhook_path = f"{WEBHOOK_URL}/telegram"
+        print(f"✅ Attempting to set webhook to: {webhook_path}")
+        await app.bot.set_webhook(url=webhook_path)
+        # دستور app.start() در حالت Webhook حذف شد تا تداخل ایجاد نشود.
+        print("✅ ربات در حالت Webhook با موفقیت راه‌اندازی شد. (Ready to receive updates)")
+
     # ۳. برگرداندن نمونه app به server.py 
     return app
