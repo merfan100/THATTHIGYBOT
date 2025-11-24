@@ -38,7 +38,8 @@ def telegram_webhook():
     try:
         data = request.get_json(force=True)
         # ⭐️ لاگ جدید: تایید دریافت Webhook ⭐️
-        print(f"✅ Webhook received update. User ID: {data.get('message', {}).get('from', {}).get('id', 'N/A')}")
+        user_id = data.get('message', {}).get('from', {}).get('id', 'N/A')
+        print(f"✅ Webhook received update. Source: /telegram. User ID: {user_id}")
         
         update = Update.de_json(data, telegram_app.bot)
         
@@ -50,11 +51,12 @@ def telegram_webhook():
         ).result() 
 
         # پس از پردازش موفق، کد 200 برمی‌گردانیم
+        print(f"✅ Update for User {user_id} processed successfully.")
         return jsonify({"status": "ok"}), 200
 
     except Exception as e:
         # ⭐️ لاگ جدید: نمایش کامل Traceback در صورت خطا ⭐️
-        print(f"Error processing update: {e}")
+        print(f"❌ Error processing update: {e}")
         print(traceback.format_exc())
         return jsonify({"status": "error", "message": str(e)}), 200 
 
@@ -86,10 +88,16 @@ async def self_ping():
                 print(f"Self-ping failed: {e}")
             await asyncio.sleep(interval)
 
+
 async def main():
     """وظایف اصلی: راه‌اندازی بات و سرور وب به صورت همزمان."""
     print("🚀 Main server function started. Initializing bot... 🚀") 
     global telegram_app 
+    
+    # ⭐️ چک کردن متغیرهای محیطی برای دیباگ ⭐️
+    print(f"Environment check - BOT_TOKEN set: {'✅ Yes' if os.environ.get('BOT_TOKEN') else '❌ No'}")
+    print(f"Environment check - WEBHOOK_URL set: {'✅ Yes' if os.environ.get('WEBHOOK_URL') else '❌ No (CRITICAL)'}")
+
 
     # ۱. راه‌اندازی بات (با فراخوانی تابع async main از test2.py)
     telegram_app = await test2.main() 
