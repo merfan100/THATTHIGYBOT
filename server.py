@@ -1,9 +1,9 @@
 import asyncio
 from flask import Flask
-import test2  # فایل بات تلگرام تو
 import nest_asyncio
+import test2
 
-nest_asyncio.apply()  # مهم برای Render که خودش event loop داره
+nest_asyncio.apply()
 
 app_web = Flask(__name__)
 
@@ -16,15 +16,13 @@ async def run_flask():
     from hypercorn.config import Config
 
     config = Config()
-    config.bind = ["0.0.0.0:10000"]  # پورت Render
+    config.bind = ["0.0.0.0:10000"]
     await serve(app_web, config)
 
 async def main():
-    # اجرای همزمان Flask و ربات
-    await asyncio.gather(
-        run_flask(),
-        test2.main()  # فرض بر اینه که فایل بات تو تابع main داره
-    )
+    bot_task = asyncio.create_task(test2.main())
+    flask_task = asyncio.create_task(run_flask())
+    await asyncio.gather(bot_task, flask_task)
 
 if __name__ == "__main__":
     asyncio.run(main())
