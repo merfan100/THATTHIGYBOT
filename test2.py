@@ -328,24 +328,34 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def set_bot_commands(app):
     await app.bot.set_my_commands([BotCommand("start", "شروع ربات")])
 
-# ------------------------- اجرای ربات -------------------------
+# ------------------------- اجرای ربات (Webhook) -------------------------
 
 async def main():
+    # ⭐️ ۱. ساخت و تنظیم هندلرها ⭐️
     app = ApplicationBuilder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(button_handler))
     app.add_handler(MessageHandler(filters.PHOTO, photo_handler))
-
+    
     await app.initialize()
     await set_bot_commands(app)
-    print("✅ ربات در حال اجراست...")
-    await app.start()
-
-    # خطوط مربوط به Polling برای جلوگیری از Conflict با وب‌سرویس حذف شدند.
-    # بات توسط Webhook در server.py به‌روزرسانی‌ها را دریافت می‌کند.
-    stop_signal = asyncio.Event()
-    await stop_signal.wait()
-
-if __name__ == "__main__":
-    nest_asyncio.apply()
-    asyncio.run(main())
+    
+    # ⭐️ ۲. تنظیم Webhook و شروع بات ⭐️
+    WEBHOOK_URL = os.environ.get("WEBHOOK_URL")
+    
+    if not WEBHOOK_URL:
+        # در محیط رندر، باید WEBHOOK_URL را تنظیم کنید.
+        print("WEBHOOK_URL تنظیم نشده است. اگر در محیط Production هستید، بات کار نخواهد کرد.")
+    else:
+        # آدرس دهی Webhook به مسیر /telegram
+        await app.bot.set_webhook(url=f"{WEBHOOK_URL}/telegram")
+        await app.start()
+        print("✅ ربات در حالت Webhook با موفقیت راه‌اندازی شد.")
+    
+    # ⭐️ ۳. برگرداندن نمونه app به server.py ⭐️
+    return app
+    
+# دیگر نیازی به این بلوک نیست چون server.py وظیفه اجرای اصلی را بر عهده دارد
+# if __name__ == "__main__":
+#     nest_asyncio.apply()
+#     asyncio.run(main()) 
