@@ -340,7 +340,7 @@ async def main():
     await set_bot_commands(app)
     print("✅ ربات در حال اجراست...")
     await app.start()
-    
+
     # خطوط مربوط به Polling برای جلوگیری از Conflict با وب‌سرویس حذف شدند.
     # بات توسط Webhook در server.py به‌روزرسانی‌ها را دریافت می‌کند.
     stop_signal = asyncio.Event()
