@@ -318,7 +318,7 @@ async def set_bot_commands(app):
 
 # ------------------------- اجرای ربات (Polling) -------------------------
 
-async def main():
+def main():
     if not BOT_TOKEN:
         print("❌ BOT_TOKEN محیطی ست نشده. لطفا آن را در تنظیمات سرویس‌دهنده ست کنید.")
         return
@@ -329,7 +329,8 @@ async def main():
     app.add_handler(MessageHandler(filters.PHOTO, photo_handler))
 
     print("✅ ربات در حالت Polling با موفقیت راه‌اندازی شد.")
-    await app.run_polling()
+    app.run_polling()   # بدون await و بدون asyncio.run
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
+
