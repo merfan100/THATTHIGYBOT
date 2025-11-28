@@ -36,7 +36,13 @@ def telegram_webhook():
         print(f"✅ Webhook received update. User ID: {user_id}")
 
         update = Update.de_json(data, telegram_app.bot)
-        loop = asyncio.get_event_loop()
+
+        # اصلاح: مطمئن می‌شیم همیشه یک event loop فعال هست
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
 
         asyncio.run_coroutine_threadsafe(
             telegram_app.process_update(update), loop
@@ -54,8 +60,8 @@ def telegram_webhook():
 
 async def run_flask():
     config = Config()
-    port = int(os.environ["PORT"])  # اجباری می‌کنیم که PORT وجود داشته باشه
-    config.bind = [f"0.0.0.0:{port}"]  # حتماً روی 0.0.0.0 گوش بده
+    port = int(os.environ["PORT"])  # Render مقدار درست رو تزریق می‌کنه
+    config.bind = [f"0.0.0.0:{port}"]
     print(f"🔥 Starting web server on port: {port} 🔥")
     await serve(app_web, config)
 
