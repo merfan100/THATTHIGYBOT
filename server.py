@@ -16,13 +16,11 @@ warnings.filterwarnings("ignore", category=SyntaxWarning, module="jdatetime")
 app_web = Flask(__name__)
 telegram_app = None
 
-
 # ------------------------- روت‌های سرور وب -------------------------
 
 @app_web.route("/")
 def home():
     return "Bot is alive and running!"
-
 
 @app_web.route("/telegram", methods=["POST"])
 def telegram_webhook():
@@ -52,16 +50,15 @@ def telegram_webhook():
         print(traceback.format_exc())
         return jsonify({"status": "error", "message": str(e)}), 200
 
-
 # ------------------------- توابع راه‌اندازی سرور -------------------------
 
 async def run_flask():
     config = Config()
-    port = int(os.environ.get("PORT", 10000))
+    # Render همیشه PORT رو به صورت متغیر محیطی می‌فرسته
+    port = int(os.environ["PORT"])  # اجباری می‌کنیم که PORT وجود داشته باشه
     config.bind = [f"0.0.0.0:{port}"]
     print(f"🔥 Starting web server on port: {port} 🔥")
     await serve(app_web, config)
-
 
 async def self_ping():
     import aiohttp
@@ -80,7 +77,6 @@ async def self_ping():
             except Exception as e:
                 print(f"Self-ping failed: {e}")
             await asyncio.sleep(interval)
-
 
 async def main():
     print("🚀 Main server function started. Initializing bot... 🚀")
@@ -103,7 +99,6 @@ async def main():
         tasks.append(ping_task)
 
     await asyncio.gather(*tasks)
-
 
 if __name__ == "__main__":
     try:
