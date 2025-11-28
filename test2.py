@@ -27,7 +27,7 @@ registration_status = {
     "shiraz": False,
 }
 
-# ------------------------- پیام‌های آماده و متغیرها -------------------------
+# ------------------------- پیام‌های آماده -------------------------
 
 DYNAMIC_CONFIRM_DAY = {
     "tehran": "جمعه",
@@ -111,8 +111,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("ورود به کانال", url=f"https://t.me/{CHANNEL_USERNAME}")],
     ]
 
-    # --- تنظیمات ادمین ---
-    # این چک برای جلوگیری از خطا در صورت ارسال دستور /start توسط ربات ادمین لازم است
     if update.effective_user and update.effective_user.id == ADMIN_CHAT_ID:
         keyboard.append(
             [
@@ -221,7 +219,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # کنترل باز/بسته شدن شهرها
     elif query.data.startswith("open_") or query.data.startswith("close_"):
-        # مثال: open_tehran -> ['open', 'tehran']
         city = query.data.split("_")[1]
         registration_status[city] = query.data.startswith("open")
         state = "باز شد ✅" if registration_status[city] else "بسته شد ❌"
@@ -237,14 +234,10 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # ------------------------- تأیید / رد فیش‌ها -------------------------
 
     elif query.data.startswith("confirm_"):
-        # فرمت دیتای اصلاح شده: confirm_{user_id}_{city_name}
         parts = query.data.split("_")
         user_id = int(parts[1])
         city = parts[2] if len(parts) > 2 else None
-
-        # ⭐️ استخراج روز رویداد بر اساس شهر ⭐️
         event_day = DYNAMIC_CONFIRM_DAY.get(city, "رویداد پیش‌رو")
-
 
         confirmation_text = (
             "پرداخت شما تأیید شد 🌱\n"
@@ -261,7 +254,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_caption(caption=new_caption, reply_markup=None)
 
     elif query.data.startswith("reject_info_") or query.data.startswith("reject_amount_"):
-        # فرمت: reject_info_{user_id}
         user_id = int(query.data.split("_")[2])
         reason_text = "اطلاعات ناقص" if "reject_info" in query.data else "مبلغ اشتباه"
 
@@ -298,7 +290,6 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     sender_info = f"از طرف {user.full_name} (@{user.username or 'بدون نام کاربری'})"
     full_caption = f"{sender_info}\n\nکپشن:\n{caption}"
 
-    # اصلاح فرمت دیتا برای جلوگیری از خطا هنگام اسپلیت کردن
     confirm_buttons = InlineKeyboardMarkup(
         [
             [InlineKeyboardButton("✅ تأیید ثبت‌نام", callback_data=f"confirm_{user_id}_{city}")],
@@ -325,36 +316,22 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def set_bot_commands(app):
     await app.bot.set_my_commands([BotCommand("start", "شروع ربات")])
 
-# ------------------------- اجرای ربات (Webhook) -------------------------
+# ------------------------- اجرای ربات (Polling) -------------------------
 
-async def main():
-    # ⭐️ بررسی حیاتی برای وجود توکن ⭐️
+def main():
     if not BOT_TOKEN:
         print("❌ BOT_TOKEN محیطی ست نشده. لطفا آن را در تنظیمات سرویس‌دهنده ست کنید.")
-        return None 
+        return
 
-    # ۱. ساخت و تنظیم هندلرها 
     app = ApplicationBuilder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(button_handler))
     app.add_handler(MessageHandler(filters.PHOTO, photo_handler))
 
-    await app.initialize()
-    await set_bot_commands(app)
+    asyncio.run(set_bot_commands(app))
 
-    # ۲. تنظیم Webhook و شروع بات 
-    WEBHOOK_URL = os.environ.get("WEBHOOK_URL")
+    print("✅ ربات در حالت Polling با موفقیت راه‌اندازی شد.")
+    app.run_polling()
 
-    if not WEBHOOK_URL:
-        # اگر آدرس وب‌هوک ست نشد، این حالت برای production مناسب نیست و هشدار می‌دهیم
-        print("❌ WEBHOOK_URL تنظیم نشده است. بات در حالت Webhook کار نخواهد کرد.")
-    else:
-        # آدرس دهی Webhook به مسیر /telegram
-        webhook_path = f"{WEBHOOK_URL}/telegram"
-        print(f"✅ Attempting to set webhook to: {webhook_path}")
-        await app.bot.set_webhook(url=webhook_path)
-        # دستور app.start() در حالت Webhook حذف شد تا تداخل ایجاد نشود.
-        print("✅ ربات در حالت Webhook با موفقیت راه‌اندازی شد. (Ready to receive updates)")
-
-    # ۳. برگرداندن نمونه app به server.py 
-    return app
+if __name__ == "__main__":
+    main()
