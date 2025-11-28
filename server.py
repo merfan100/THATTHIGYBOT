@@ -54,9 +54,8 @@ def telegram_webhook():
 
 async def run_flask():
     config = Config()
-    # Render همیشه PORT رو به صورت متغیر محیطی می‌فرسته
     port = int(os.environ["PORT"])  # اجباری می‌کنیم که PORT وجود داشته باشه
-    config.bind = [f"0.0.0.0:{port}"]
+    config.bind = [f"0.0.0.0:{port}"]  # حتماً روی 0.0.0.0 گوش بده
     print(f"🔥 Starting web server on port: {port} 🔥")
     await serve(app_web, config)
 
