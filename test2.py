@@ -312,26 +312,19 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 # ------------------------- تنظیم دستورات ربات -------------------------
-
 async def set_bot_commands(app):
     await app.bot.set_my_commands([BotCommand("start", "شروع ربات")])
 
 # ------------------------- اجرای ربات (Polling) -------------------------
-
 def main():
     if not BOT_TOKEN:
         print("❌ BOT_TOKEN محیطی ست نشده. لطفا آن را در تنظیمات سرویس‌دهنده ست کنید.")
         return
 
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
+    app = ApplicationBuilder().token(BOT_TOKEN).post_init(set_bot_commands).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(button_handler))
     app.add_handler(MessageHandler(filters.PHOTO, photo_handler))
 
-    asyncio.run(set_bot_commands(app))
-
     print("✅ ربات در حالت Polling با موفقیت راه‌اندازی شد.")
     app.run_polling()
-
-if __name__ == "__main__":
-    main()
