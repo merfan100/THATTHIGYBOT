@@ -263,30 +263,44 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_caption(caption=new_cap, reply_markup=None)
 
     elif query.data.startswith("reject_info_") or query.data.startswith("reject_amount_") or query.data.startswith("reject_"):
-        # support multiple reject patterns
-        parts = query.data.split("_")
-        # expected patterns: reject_info_{user_id}, reject_amount_{user_id}, reject_{user_id}
-        if len(parts) >= 3:
-            user_id = int(parts[-1])
-        elif len(parts) == 2:
-            user_id = int(parts[1])
-        else:
-            return
+    # استخراج user_id از callback_data
+    parts = query.data.split("_")
+    if len(parts) >= 3:
+        user_id = int(parts[-1])
+    elif len(parts) == 2:
+        user_id = int(parts[1])
+    else:
+        return
 
-        reason = "اطلاعات ناقص" if "info" in query.data else "مبلغ اشتباه" if "amount" in query.data else "نامشخص"
-
-        await context.bot.send_message(
-            chat_id=user_id,
-            text=f"❌ ثبت‌نام شما رد شد ({reason}). لطفاً فیش را مجدداً ارسال کنید 🌱",
-            reply_markup=support_back("choose_city")
+    if "info" in query.data:
+        # پیام رد به دلیل اطلاعات ناقص
+        text = (
+            "ثبت‌نام شما به دلیل اطلاعات ناقص رد شد🥲\n"
+            "لطفاً فیش رو دوباره ارسال کنید و نام و نام خانوادگی خودتون به همراه شماره تماستون را "
+            "در کپشن فیش بنویسید 🌱"
+        )
+    else:
+        # پیام رد به دلیل مبلغ اشتباه
+        text = (
+            f"فیش واریزی شما رد شد❌\n"
+            f"مبلغ پرداختی با مبلغ تعیین شده همخوانی نداشت.\n"
+            f"برای اطلاعات بیشتر به پشتیبانی به آیدی @{SUPPORT_USERNAME} پیام دهید"
         )
 
-        msg = query.message
-        cap = msg.caption or ""
-        date = jdatetime.date.today().strftime("%Y/%m/%d")
-        new_cap = f"{cap}\n\n❌ رد شده ({reason}) در تاریخ {date}"
+    await context.bot.send_message(
+        chat_id=user_id,
+        text=text,
+        reply_markup=support_back("choose_city")
+    )
 
-        await query.edit_message_caption(caption=new_cap, reply_markup=None)
+    # به‌روزرسانی کپشن پیام ادمین
+    msg = query.message
+    cap = msg.caption or ""
+    date = jdatetime.date.today().strftime("%Y/%m/%d")
+    reason_text = "اطلاعات ناقص" if "info" in query.data else "مبلغ اشتباه"
+    new_cap = f"{cap}\n\n❌ رد شده ({reason_text}) در تاریخ {date}"
+
+    await query.edit_message_caption(caption=new_cap, reply_markup=None)
 
 
 # ------------------------- دریافت عکس فیش -------------------------
