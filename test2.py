@@ -1,5 +1,4 @@
 import os
-import asyncio
 import jdatetime
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, BotCommand
 from telegram.ext import (
@@ -29,12 +28,6 @@ registration_status = {
 
 # ------------------------- پیام‌های آماده -------------------------
 
-DYNAMIC_CONFIRM_DAY = {
-    "tehran": "جمعه",
-    "esfahan": "سه‌شنبه", 
-    "shiraz": "رویداد شیراز", 
-}
-
 CLOSED_EVENT_MESSAGE = (
     "سلام🌱\n\n"
     "خوشحالیم که مشتاق حضور در جمع مهدکودک‌بزرگترها هستید\n\n"
@@ -49,18 +42,22 @@ TEHRAN_EVENT_MESSAGE = (
     "📍 مکان:\nباغچه کودکی هم‌صدا\n\n"
     "☁️ هزینه: 590 هزارتومان\n\n"
     "🔸 شرایط ثبت نام با تخفیف:\n"
-    "به ازای هر دوستی که همراه با خودتون بیارید ۱۰٪ تخفیف همراهی از ما می‌گیرید.\n\n"
+    "به ازای هر دوستی که همراه با خودتون بیارید ۱۰٪ تخفیف همراهی از ما می‌گی‌رید.\n\n"
     "(نگران تنها اومدن هم نباشید؛ ما اینجا همه باهم دوست میشیم :)"
 )
 
+#  *** متن جدید اصفهان که گفتی ***
 ESFAHAN_EVENT_MESSAGE = (
     "مهدکودک‌بزرگترها اصفهان\n\n"
     "👫مخاطب رویداد : بزرگسالان ۱۸ سال به بالا که دلشون یه کم بچگی می‌خواد\n\n"
-    "📅زمان:\n۴ آذر ۱۴۰۴\nساعت ۱۷ الی ۲۰\n\n"
-    "📍مکان: \nخونه‌نقطه🌱\n\n"
-    "☁️ هزینه: ۴۵۰ هزارتومان \n\n"
+    "📅زمان:\n"
+    "پنجشنبه، ۱۳ آذرماه ۱۴۰۴\n"
+    "ساعت 17 الی 20\n\n"
+    "📍مکان:\n"
+    "مهدکودک خلاقان کوچک ، میرزاطاهر\n\n"
+    "☁️ هزینه: ۴۵۰ هزارتومان\n\n"
     "🔸شرایط ثبت نام با تخفیف:\n"
-    "به ازای هر دوستی که همراه با خودتون بیارید ۱۰٪ تخفیف همراهی از ما می‌گیرید.\n\n"
+    "به ازای هر دوستی که همراه با خودتون بیارید ۱۰٪ تخفیف همراهی از ما می‌گی‌رید.\n\n"
     "(نگران تنها اومدن هم نباشید؛ ما اینجا همه باهم دوست میشیم :)"
 )
 
@@ -78,6 +75,7 @@ TEHRAN_RECEIPT_MESSAGE = f"""📝 لطفا قبل از ادامه‌ی مسیر 
 {CARD_NUMBER}
 به نام {CARD_OWNER}"""
 
+#  *** طبق گفته‌ات: رسید اصفهان همون قبلی ***
 ESFAHAN_RECEIPT_MESSAGE = f"""📝 لطفا قبل از ادامه‌ی مسیر هزینه‌ی رویداد رو براساس تعداد نفرات مشخص کن:
 
 یک نفر : ۴۵۰ هزارتومان
@@ -91,9 +89,18 @@ ESFAHAN_RECEIPT_MESSAGE = f"""📝 لطفا قبل از ادامه‌ی مسیر
 {CARD_NUMBER}
 به نام {CARD_OWNER}"""
 
+#  *** پیام تایید مشترک برای همه شهرها ***
+GLOBAL_CONFIRM_MESSAGE = (
+    "پرداخت شما تأیید شد 🌱\n"
+    "ثبت‌نامتون در رویداد مهدکودک‌بزرگترها کامل شد✅\n\n"
+    "اطلاعات تکمیلی رویداد،‌ یک روز قبل از اون براتون ارسال میشه✨\n\n"
+    "منتظرتون هستیم 💛"
+)
+
+
 # ------------------------- توابع کمکی -------------------------
 
-def support_back_channel(callback_data: str) -> InlineKeyboardMarkup:
+def support_back(callback_data: str):
     return InlineKeyboardMarkup(
         [
             [InlineKeyboardButton("بازگشت", callback_data=callback_data)],
@@ -102,45 +109,33 @@ def support_back_channel(callback_data: str) -> InlineKeyboardMarkup:
         ]
     )
 
-# ------------------------- شروع /start -------------------------
+# ------------------------- /start -------------------------
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
-        [InlineKeyboardButton("✨ شهرتو انتخاب کن", callback_data="event_kindergarten")],
+        [InlineKeyboardButton("✨ شهرتو انتخاب کن", callback_data="choose_city")],
         [InlineKeyboardButton("پشتیبانی", callback_data="support")],
         [InlineKeyboardButton("ورود به کانال", url=f"https://t.me/{CHANNEL_USERNAME}")],
     ]
 
-    if update.effective_user and update.effective_user.id == ADMIN_CHAT_ID:
-        keyboard.append(
-            [
-                InlineKeyboardButton("🔒 بستن اصفهان", callback_data="close_esfahan"),
-                InlineKeyboardButton("🔓 باز کردن اصفهان", callback_data="open_esfahan"),
-            ]
-        )
-        keyboard.append(
-            [
-                InlineKeyboardButton("🔒 بستن تهران", callback_data="close_tehran"),
-                InlineKeyboardButton("🔓 باز کردن تهران", callback_data="open_tehran"),
-            ]
-        )
-        keyboard.append(
-            [
-                InlineKeyboardButton("🔒 بستن شیراز", callback_data="close_shiraz"),
-                InlineKeyboardButton("🔓 باز کردن شیراز", callback_data="open_shiraz"),
-            ]
-        )
+    # دکمه‌های مدیریت
+    if update.effective_user.id == ADMIN_CHAT_ID:
+        for city in ["esfahan", "tehran", "shiraz"]:
+            keyboard.append([
+                InlineKeyboardButton(f"🔒 بستن {city}", callback_data=f"close_{city}"),
+                InlineKeyboardButton(f"🔓 باز کردن {city}", callback_data=f"open_{city}"),
+            ])
 
-    reply_markup = InlineKeyboardMarkup(keyboard)
     greeting = (
         "سلام 🌱\n"
-        "خوشحالم که می‌خواین بیاین تا برای چند لحظه زندگیِ روزمره رو متوقف کنیم🥰"
+        "خوشحالم که می‌خواین بیاین تا برای چند لحظه زندگی روزمره رو متوقف کنیم 🥰"
     )
 
     if update.message:
-        await update.message.reply_text(greeting, reply_markup=reply_markup)
-    elif update.callback_query:
-        await update.callback_query.edit_message_text(greeting, reply_markup=reply_markup)
+        await update.message.reply_text(greeting, reply_markup=InlineKeyboardMarkup(keyboard))
+    else:
+        await update.callback_query.edit_message_text(greeting, reply_markup=InlineKeyboardMarkup(keyboard))
+
 
 # ------------------------- هندلر دکمه‌ها -------------------------
 
@@ -149,188 +144,159 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
 
     # انتخاب شهر
-    if query.data == "event_kindergarten":
-        def city_status(city):
+    if query.data == "choose_city":
+        def status(city):
             return "✅" if registration_status[city] else "❌"
 
         keyboard = [
-            [InlineKeyboardButton(f"{city_status('esfahan')} اصفهان", callback_data="session_esfahan")],
-            [InlineKeyboardButton(f"{city_status('tehran')} تهران", callback_data="session_tehran")],
-            [InlineKeyboardButton(f"{city_status('shiraz')} شیراز", callback_data="session_shiraz")],
+            [InlineKeyboardButton(f"{status('esfahan')} اصفهان", callback_data="city_esfahan")],
+            [InlineKeyboardButton(f"{status('tehran')} تهران", callback_data="city_tehran")],
+            [InlineKeyboardButton(f"{status('shiraz')} شیراز", callback_data="city_shiraz")],
             [InlineKeyboardButton("بازگشت", callback_data="start")],
-            [InlineKeyboardButton("پشتیبانی", callback_data="support")],
-            [InlineKeyboardButton("ورود به کانال", url=f"https://t.me/{CHANNEL_USERNAME}")],
         ]
-        await query.edit_message_text("✨ کدوم شهرو می‌خوای شرکت کنی؟", reply_markup=InlineKeyboardMarkup(keyboard))
+        await query.edit_message_text("✨ کدوم شهر رو میخوای شرکت کنی؟", reply_markup=InlineKeyboardMarkup(keyboard))
 
-    # تهران
-    elif query.data == "session_tehran":
-        context.user_data["city"] = "تهران"
-        if registration_status["tehran"]:
-            keyboard = [
-                [InlineKeyboardButton("نهایی کردن ثبت‌نام", callback_data="start_receipt_tehran")],
-                [InlineKeyboardButton("بازگشت", callback_data="event_kindergarten")],
-                [InlineKeyboardButton("پشتیبانی", url=f"https://t.me/{SUPPORT_USERNAME}")],
-            ]
-            await query.edit_message_text(TEHRAN_EVENT_MESSAGE, reply_markup=InlineKeyboardMarkup(keyboard))
-        else:
-            await query.edit_message_text(CLOSED_EVENT_MESSAGE, reply_markup=support_back_channel("event_kindergarten"))
-
-    # اصفهان
-    elif query.data == "session_esfahan":
-        context.user_data["city"] = "اصفهان"
+    # -------------- اصفهان --------------
+    elif query.data == "city_esfahan":
         if registration_status["esfahan"]:
             keyboard = [
-                [InlineKeyboardButton("نهایی کردن ثبت‌نام", callback_data="start_receipt_esfahan")],
-                [InlineKeyboardButton("بازگشت", callback_data="event_kindergarten")],
-                [InlineKeyboardButton("پشتیبانی", url=f"https://t.me/{SUPPORT_USERNAME}")],
+                [InlineKeyboardButton("نهایی کردن ثبت‌نام", callback_data="pay_esfahan")],
+                [InlineKeyboardButton("بازگشت", callback_data="choose_city")],
             ]
             await query.edit_message_text(ESFAHAN_EVENT_MESSAGE, reply_markup=InlineKeyboardMarkup(keyboard))
         else:
-            await query.edit_message_text(CLOSED_EVENT_MESSAGE, reply_markup=support_back_channel("event_kindergarten"))
+            await query.edit_message_text(CLOSED_EVENT_MESSAGE, reply_markup=support_back("choose_city"))
 
-    # شیراز
-    elif query.data == "session_shiraz":
-        context.user_data["city"] = "شیراز"
-        if registration_status["shiraz"]:
+    # -------------- تهران --------------
+    elif query.data == "city_tehran":
+        if registration_status["tehran"]:
             keyboard = [
-                [InlineKeyboardButton("نهایی کردن ثبت‌نام", callback_data="start_receipt_shiraz")],
-                [InlineKeyboardButton("بازگشت", callback_data="event_kindergarten")],
-                [InlineKeyboardButton("پشتیبانی", url=f"https://t.me/{SUPPORT_USERNAME}")],
+                [InlineKeyboardButton("نهایی کردن ثبت‌نام", callback_data="pay_tehran")],
+                [InlineKeyboardButton("بازگشت", callback_data="choose_city")],
             ]
-            await query.edit_message_text("مهدکودک‌بزرگترها شیراز ✨", reply_markup=InlineKeyboardMarkup(keyboard))
+            await query.edit_message_text(TEHRAN_EVENT_MESSAGE, reply_markup=InlineKeyboardMarkup(keyboard))
         else:
-            await query.edit_message_text(CLOSED_EVENT_MESSAGE, reply_markup=support_back_channel("event_kindergarten"))
+            await query.edit_message_text(CLOSED_EVENT_MESSAGE, reply_markup=support_back("choose_city"))
 
-    # شروع ثبت‌نام
-    elif query.data == "start_receipt_tehran":
-        context.user_data["ready_for_receipt"] = "tehran"
-        await query.edit_message_text(
-            TEHRAN_RECEIPT_MESSAGE,
-            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("پشتیبانی", url=f"https://t.me/{SUPPORT_USERNAME}")]]),
-        )
+    # -------------- شیراز --------------
+    elif query.data == "city_shiraz":
+        if registration_status["shiraz"]:
+            await query.edit_message_text(
+                "رویداد شیراز به‌زودی آپدیت میشه 🌱",
+                reply_markup=support_back("choose_city"),
+            )
+        else:
+            await query.edit_message_text(CLOSED_EVENT_MESSAGE, reply_markup=support_back("choose_city"))
 
-    elif query.data == "start_receipt_esfahan":
-        context.user_data["ready_for_receipt"] = "esfahan"
-        await query.edit_message_text(
-            ESFAHAN_RECEIPT_MESSAGE,
-            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("پشتیبانی", url=f"https://t.me/{SUPPORT_USERNAME}")]]),
-        )
+    # -------------- شروع پرداخت ----------------
+    elif query.data == "pay_tehran":
+        context.user_data["city"] = "tehran"
+        await query.edit_message_text(TEHRAN_RECEIPT_MESSAGE)
 
-    # کنترل باز/بسته شدن شهرها
+    elif query.data == "pay_esfahan":
+        context.user_data["city"] = "esfahan"
+        await query.edit_message_text(ESFAHAN_RECEIPT_MESSAGE)
+
+    # -------------- مدیریت باز/بسته شدن شهرها --------------
     elif query.data.startswith("open_") or query.data.startswith("close_"):
         city = query.data.split("_")[1]
         registration_status[city] = query.data.startswith("open")
         state = "باز شد ✅" if registration_status[city] else "بسته شد ❌"
-        await query.edit_message_text(f"ثبت‌نام برای {city} {state}", reply_markup=support_back_channel("start"))
+        await query.edit_message_text(f"ثبت‌نام برای {city} {state}", reply_markup=support_back("start"))
 
-    # پشتیبانی
-    elif query.data == "support":
-        await query.edit_message_text(
-            "اگه سوالی داشتی یا نیاز به کمک داشتی، با آیدی @MahdeKoodakSupport ارتباط بگیر 💌",
-            reply_markup=support_back_channel("event_kindergarten"),
-        )
-
-    # ------------------------- تأیید / رد فیش‌ها -------------------------
+    # -------------- تایید/رد فیش --------------
 
     elif query.data.startswith("confirm_"):
-        parts = query.data.split("_")
-        user_id = int(parts[1])
-        city = parts[2] if len(parts) > 2 else None
-        event_day = DYNAMIC_CONFIRM_DAY.get(city, "رویداد پیش‌رو")
+        user_id = int(query.data.split("_")[1])
 
-        confirmation_text = (
-            "پرداخت شما تأیید شد 🌱\n"
-            f"ثبت‌نامتون در رویداد مهدکودک‌بزرگترهای **{event_day}** کامل شد.\n\n"
-            "اطلاعات تکمیلی رویداد،‌ یک روز قبل از اون براتون ارسال میشه✨\n\n"
-            "منتظرتون هستیم 💛"
-        )
-        await context.bot.send_message(chat_id=user_id, text=confirmation_text)
+        # ⚠️ پیام جدید و مشترک برای همه شهرها
+        await context.bot.send_message(chat_id=user_id, text=GLOBAL_CONFIRM_MESSAGE)
 
         msg = query.message
-        caption = msg.caption or ""
-        today_shamsi = jdatetime.date.today().strftime("%Y/%m/%d")
-        new_caption = f"{caption}\n\n✅ تایید شده در تاریخ {today_shamsi}"
-        await query.edit_message_caption(caption=new_caption, reply_markup=None)
+        cap = msg.caption or ""
+        date = jdatetime.date.today().strftime("%Y/%m/%d")
+        new_cap = f"{cap}\n\n✅ تایید شده در تاریخ {date}"
 
-    elif query.data.startswith("reject_info_") or query.data.startswith("reject_amount_"):
+        await query.edit_message_caption(caption=new_cap, reply_markup=None)
+
+    elif query.data.startswith("reject_"):
         user_id = int(query.data.split("_")[2])
-        reason_text = "اطلاعات ناقص" if "reject_info" in query.data else "مبلغ اشتباه"
+        reason = "اطلاعات ناقص" if "info" in query.data else "مبلغ اشتباه"
 
         await context.bot.send_message(
             chat_id=user_id,
-            text=f"❌ ثبت‌نام شما رد شد ({reason_text}). لطفاً فیش رو دوباره ارسال کنید و نام و شماره تماس رو بنویسید 🌱",
-            reply_markup=support_back_channel("event_kindergarten"),
+            text=f"❌ ثبت‌نام شما رد شد ({reason}). لطفاً فیش را مجدداً ارسال کنید 🌱",
         )
 
         msg = query.message
-        caption = msg.caption or ""
-        today_shamsi = jdatetime.date.today().strftime("%Y/%m/%d")
-        new_caption = f"{caption}\n\n❌ رد شده ({reason_text}) در تاریخ {today_shamsi}"
-        await query.edit_message_caption(caption=new_caption, reply_markup=None)
+        cap = msg.caption or ""
+        date = jdatetime.date.today().strftime("%Y/%m/%d")
+        new_cap = f"{cap}\n\n❌ رد شده ({reason}) در تاریخ {date}"
+
+        await query.edit_message_caption(caption=new_cap, reply_markup=None)
+
 
 # ------------------------- دریافت عکس فیش -------------------------
 
 async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    city = context.user_data.get("ready_for_receipt")
+    city = context.user_data.get("city")
 
-    if not city or not registration_status.get(city, False):
+    if not city or not registration_status.get(city):
         await update.message.reply_text(
-            "❌ ثبت‌نام برای این شهر بسته شده یا مسیر ثبت‌نام کامل طی نشده.\n"
-            "لطفا فیش واریزیتون رو به همراه نام و نام خانوادگی در کپشن عکس، بعد از انتخاب کردن «نهایی کردن ثبت‌نام» ارسال کنید.",
-            reply_markup=support_back_channel("event_kindergarten"),
+            "❌ لطفاً ابتدا از مسیر «نهایی کردن ثبت‌نام» وارد شوید و سپس فیش را ارسال کنید.",
+            reply_markup=support_back("choose_city"),
         )
         return
 
     photo = update.message.photo[-1]
     caption = update.message.caption or "بدون کپشن"
+
     user = update.message.from_user
     user_id = user.id
 
-    sender_info = f"از طرف {user.full_name} (@{user.username or 'بدون نام کاربری'})"
-    full_caption = f"{sender_info}\n\nکپشن:\n{caption}"
+    admin_caption = (
+        f"از طرف {user.full_name} (@{user.username or 'بدون نام‌کاربری'})\n\n"
+        f"کپشن:\n{caption}"
+    )
 
     confirm_buttons = InlineKeyboardMarkup(
         [
-            [InlineKeyboardButton("✅ تأیید ثبت‌نام", callback_data=f"confirm_{user_id}_{city}")],
-            [InlineKeyboardButton("❌ رد به‌خاطر اطلاعات ناقص", callback_data=f"reject_info_{user_id}")],
-            [InlineKeyboardButton("❌ رد به‌خاطر مبلغ اشتباه", callback_data=f"reject_amount_{user_id}")],
+            [InlineKeyboardButton("✅ تأیید ثبت‌نام", callback_data=f"confirm_{user_id}")],
+            [InlineKeyboardButton("❌ رد - اطلاعات ناقص", callback_data=f"reject_info_{user_id}")],
+            [InlineKeyboardButton("❌ رد - مبلغ اشتباه", callback_data=f"reject_amount_{user_id}")],
         ]
     )
 
     await context.bot.send_photo(
         chat_id=ADMIN_CHAT_ID,
         photo=photo.file_id,
-        caption=full_caption,
+        caption=admin_caption,
         reply_markup=confirm_buttons,
     )
 
-    context.user_data["ready_for_receipt"] = None
-
     await update.message.reply_text(
-        "فیش شما با موفقیت دریافت شد 💌\nدر حال بررسی توسط تیم ثبت‌نام هستیم. به‌زودی نتیجه رو بهتون اطلاع می‌دیم 🌱"
+        "فیش شما با موفقیت دریافت شد 💌\nدر حال بررسی توسط تیم هستیم و نتیجه را اطلاع می‌دهیم 🌱"
     )
 
-# ------------------------- تنظیم دستورات ربات -------------------------
 
-async def set_bot_commands(app):
-    await app.bot.set_my_commands([BotCommand("start", "شروع ربات")])
+# ------------------------- اجرای ربات -------------------------
 
-# ------------------------- اجرای ربات (Polling) -------------------------
+async def set_commands(app):
+    await app.bot.set_my_commands([BotCommand("start", "شروع")])
 
 def main():
     if not BOT_TOKEN:
-        print("❌ BOT_TOKEN محیطی ست نشده. لطفا آن را در تنظیمات سرویس‌دهنده ست کنید.")
+        print("❌ BOT_TOKEN ست نشده")
         return
 
-    app = ApplicationBuilder().token(BOT_TOKEN).post_init(set_bot_commands).build()
+    app = ApplicationBuilder().token(BOT_TOKEN).post_init(set_commands).build()
+
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(button_handler))
     app.add_handler(MessageHandler(filters.PHOTO, photo_handler))
 
-    print("✅ ربات در حالت Polling با موفقیت راه‌اندازی شد.")
-    app.run_polling()   # بدون await و بدون asyncio.run
+    print("✅ Bot is running...")
+    app.run_polling()
 
 if __name__ == "__main__":
     main()
-
